@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { formatDistance, formatDuration } from '@/lib/utils'
 import { Zap, TrendingUp, Clock, RefreshCw } from 'lucide-react'

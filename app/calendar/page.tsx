@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { UserRace } from '@/lib/types'
 import { formatDate, daysUntil, itraColor, countryFlag } from '@/lib/utils'

@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from 'react'
 import { CheckCircle, Circle, ExternalLink } from 'lucide-react'
 

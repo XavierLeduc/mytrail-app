@@ -1,14 +1,16 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useMemo } from 'react'
 import { seedRaces } from '@/data/races'
 import { Race } from '@/lib/types'
 import ExplorerFilters, { Filters } from '@/components/explorer/ExplorerFilters'
 import RaceList from '@/components/explorer/RaceList'
-import dynamic from 'next/dynamic'
+import lazyLoad from 'next/dynamic'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 
-const RaceMap = dynamic(() => import('@/components/explorer/RaceMap'), { ssr: false })
+const RaceMap = lazyLoad(() => import('@/components/explorer/RaceMap'), { ssr: false })
 
 const countries = [...new Set(seedRaces.map(r => r.country))].sort()
 
