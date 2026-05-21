@@ -8,11 +8,12 @@ interface Props {
   races: Race[]
   selectedId: string | null
   addedIds: Set<string>
+  savingId: string | null
   onSelect: (race: Race) => void
   onAdd: (race: Race) => void
 }
 
-export default function RaceList({ races, selectedId, addedIds, onSelect, onAdd }: Props) {
+export default function RaceList({ races, selectedId, addedIds, savingId, onSelect, onAdd }: Props) {
   if (races.length === 0) {
     return (
       <div
@@ -38,6 +39,7 @@ export default function RaceList({ races, selectedId, addedIds, onSelect, onAdd 
       {races.map(race => {
         const isSelected = selectedId === race.id
         const isAdded = addedIds.has(race.id)
+        const isSaving = savingId === race.id
 
         return (
           <div
@@ -113,7 +115,8 @@ export default function RaceList({ races, selectedId, addedIds, onSelect, onAdd 
 
             {/* Add button */}
             <button
-              onClick={e => { e.stopPropagation(); if (!isAdded) onAdd(race) }}
+              onClick={e => { e.stopPropagation(); if (!isAdded && !isSaving) onAdd(race) }}
+              disabled={isAdded || isSaving}
               style={{
                 width: 28,
                 height: 28,
@@ -124,11 +127,12 @@ export default function RaceList({ races, selectedId, addedIds, onSelect, onAdd 
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: isAdded ? 'default' : 'pointer',
+                cursor: isAdded || isSaving ? 'default' : 'pointer',
                 flexShrink: 0,
+                opacity: isSaving ? 0.5 : 1,
               }}
             >
-              {isAdded ? <Check size={13} /> : <Plus size={13} />}
+              {isSaving ? '…' : isAdded ? <Check size={13} /> : <Plus size={13} />}
             </button>
           </div>
         )

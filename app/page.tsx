@@ -1,33 +1,52 @@
 import NextRaceHero from '@/components/dashboard/NextRaceHero'
 import StatsRow from '@/components/dashboard/StatsRow'
 import SeasonTimeline from '@/components/dashboard/SeasonTimeline'
-import { seedRaces } from '@/data/races'
+import { createSupabaseServer } from '@/lib/supabase-server'
 import { UserRace } from '@/lib/types'
 import Link from 'next/link'
 import { daysUntil } from '@/lib/utils'
+import { redirect } from 'next/navigation'
 
-const r5 = { ...seedRaces.find(r => r.id === '5')!, date: '2026-06-08' }
-const r1 = { ...seedRaces.find(r => r.id === '1')!, date: '2026-08-25' }
-const r7 = { ...seedRaces.find(r => r.id === '7')!, date: '2026-09-07' }
+export default async function DashboardPage() {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-const mockUserRaces: UserRace[] = [
-  { id: 'ur1', user_id: 'u1', race_id: '5', status: 'registered', notes: null, created_at: '2026-01-01', race: r5 },
-  { id: 'ur2', user_id: 'u1', race_id: '1', status: 'registered', notes: null, created_at: '2026-01-01', race: r1 },
-  { id: 'ur3', user_id: 'u1', race_id: '7', status: 'interested', notes: null, created_at: '2026-01-01', race: r7 },
-]
+  const year = new Date().getFullYear()
 
-export default function DashboardPage() {
-  const upcoming = mockUserRaces
+  // Fetch user's races with race details
+  const { data: userRaces } = await supabase
+    .from('user_races')
+    .select('*, race:races(*)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  const races = (userRaces ?? []) as UserRace[]
+
+  // Upcoming races sorted by date
+  const upcoming = races
     .filter(ur => daysUntil(ur.race.date) > 0)
     .sort((a, b) => new Date(a.race.date).getTime() - new Date(b.race.date).getTime())
 
   const nextRace = upcoming[0]?.race ?? null
 
+  // Monthly stats from activities
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const { data: activities } = await supabase
+    .from('activities')
+    .select('distance_m, elevation_m')
+    .eq('user_id', user.id)
+    .gte('started_at', monthStart)
+
+  const kmThisMonth = Math.round((activities ?? []).reduce((s, a) => s + a.distance_m, 0) / 1000)
+  const elevThisMonth = (activities ?? []).reduce((s, a) => s + a.elevation_m, 0)
+
   const stats = {
-    kmThisMonth: 0,
-    elevationThisMonth: 0,
-    racesPlanned: mockUserRaces.length,
-    racesCompleted: mockUserRaces.filter(ur => ur.status === 'completed').length,
+    kmThisMonth,
+    elevationThisMonth: elevThisMonth,
+    racesPlanned: races.length,
+    racesCompleted: races.filter(ur => ur.status === 'completed').length,
   }
 
   return (
@@ -35,10 +54,10 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 }}>
-            Bonjour Xavier 👋
+            Bonjour 👋
           </p>
           <h1 style={{ color: 'var(--text-primary)', fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>
-            Ta saison {new Date().getFullYear()}
+            Ta saison {year}
           </h1>
         </div>
         <Link
@@ -67,7 +86,7 @@ export default function DashboardPage() {
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <SeasonTimeline userRaces={mockUserRaces as any} />
+        <SeasonTimeline userRaces={races as any} />
       </div>
 
       {upcoming.length > 1 && (
@@ -89,20 +108,10 @@ export default function DashboardPage() {
                   gap: 12,
                 }}
               >
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: ur.status === 'registered' ? 'var(--accent-green)' : 'var(--text-muted)',
-                    flexShrink: 0,
-                  }}
-                />
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: ur.status === 'registered' ? 'var(--accent-green)' : 'var(--text-muted)', flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 600 }}>{ur.race.name}</div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: 2 }}>
-                    {ur.race.distance_km}km · {ur.race.location}
-                  </div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: 2 }}>{ur.race.distance_km}km · {ur.race.location}</div>
                 </div>
                 <div style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 600 }}>
                   J−{daysUntil(ur.race.date)}
@@ -110,6 +119,16 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {races.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '2rem', marginBottom: 8 }}>🏔️</div>
+          <p style={{ marginBottom: 12 }}>Aucune course planifiée pour l'instant</p>
+          <Link href="/explorer" style={{ color: 'var(--accent-green)', textDecoration: 'none', fontSize: '0.875rem' }}>
+            Explorer les courses →
+          </Link>
         </div>
       )}
     </div>
