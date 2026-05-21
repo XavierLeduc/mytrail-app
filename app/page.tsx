@@ -10,8 +10,13 @@ import { daysUntil } from '@/lib/utils'
 import { redirect } from 'next/navigation'
 
 export default async function DashboardPage() {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
+  let supabase: Awaited<ReturnType<typeof createSupabaseServer>>
+  try {
+    supabase = await createSupabaseServer()
+  } catch {
+    redirect('/login')
+  }
+  const { data: { user } } = await supabase!.auth.getUser()
   if (!user) redirect('/login')
 
   const year = new Date().getFullYear()
