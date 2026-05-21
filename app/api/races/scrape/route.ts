@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { scrapeUTMBIndex, upsertRaces } from '@/lib/scraper'
+import { scrapeAll, upsertRaces } from '@/lib/scraper'
 
 // Vercel Cron: runs daily at 3am UTC
 // vercel.json: {"crons": [{"path": "/api/races/scrape", "schedule": "0 3 * * *"}]}
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const races = await scrapeUTMBIndex()
+  const races = await scrapeAll()
   const result = await upsertRaces(races)
 
   return NextResponse.json({

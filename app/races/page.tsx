@@ -5,9 +5,10 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import { UserRace, RaceStatus } from '@/lib/types'
 import { formatDistance, formatElevation, formatDate, countryFlag, daysUntil, itraColor } from '@/lib/utils'
-import { MapPin, ExternalLink, Trash2 } from 'lucide-react'
+import { MapPin, ExternalLink, Trash2, Plus } from 'lucide-react'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import Link from 'next/link'
+import AddRaceModal from '@/components/races/AddRaceModal'
 
 const STATUS_LABEL: Record<RaceStatus, string> = {
   interested: 'Intéressé',
@@ -24,6 +25,8 @@ const STATUS_COLOR: Record<RaceStatus, string> = {
 export default function RacesPage() {
   const [userRaces, setUserRaces] = useState<UserRace[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAdd, setShowAdd] = useState(false)
+  const [addSuccess, setAddSuccess] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -51,6 +54,16 @@ export default function RacesPage() {
     await getSupabaseBrowser().from('user_races').delete().eq('id', id)
   }
 
+  const reload = async () => {
+    setLoading(true)
+    const supabase = getSupabaseBrowser()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase.from('user_races').select('*, race:races(*)').eq('user_id', user.id).order('created_at', { ascending: false })
+    setUserRaces((data ?? []) as UserRace[])
+    setLoading(false)
+  }
+
   const groups: Record<RaceStatus, UserRace[]> = {
     registered: userRaces.filter(ur => ur.status === 'registered').sort((a, b) => new Date(a.race.date).getTime() - new Date(b.race.date).getTime()),
     interested: userRaces.filter(ur => ur.status === 'interested').sort((a, b) => new Date(a.race.date).getTime() - new Date(b.race.date).getTime()),
@@ -59,14 +72,40 @@ export default function RacesPage() {
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 800, margin: '0 auto' }}>
+      {showAdd && (
+        <AddRaceModal
+          onClose={() => setShowAdd(false)}
+          onAdded={(name) => {
+            setShowAdd(false)
+            setAddSuccess(`"${name}" ajoutée à ta saison !`)
+            setTimeout(() => setAddSuccess(''), 4000)
+            reload()
+          }}
+        />
+      )}
+
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 24 }}>
         <h1 style={{ color: 'var(--text-primary)', fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>
           Mes courses
         </h1>
-        <Link href="/explorer" style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent-green)', borderRadius: 8, padding: '8px 16px', color: 'var(--accent-green)', fontSize: '0.8rem', textDecoration: 'none' }}>
-          + Explorer
-        </Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setShowAdd(true)}
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', color: 'var(--text-muted)', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+          >
+            <Plus size={13} /> Saisir manuellement
+          </button>
+          <Link href="/explorer" style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent-green)', borderRadius: 8, padding: '8px 16px', color: 'var(--accent-green)', fontSize: '0.8rem', textDecoration: 'none' }}>
+            + Explorer
+          </Link>
+        </div>
       </div>
+
+      {addSuccess && (
+        <div style={{ background: '#0f2a1a', border: '1px solid var(--accent-green)', borderRadius: 8, padding: '10px 16px', marginBottom: 16, color: 'var(--accent-green)', fontSize: '0.85rem' }}>
+          ✓ {addSuccess}
+        </div>
+      )}
 
       {loading && (
         <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>Chargement...</div>
