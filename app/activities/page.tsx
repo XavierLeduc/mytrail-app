@@ -13,9 +13,9 @@ export default function ActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
-  const supabase = getSupabaseBrowser()
 
   const load = async () => {
+    const supabase = getSupabaseBrowser()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const { data } = await supabase

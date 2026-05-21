@@ -24,10 +24,10 @@ const STATUS_COLOR: Record<RaceStatus, string> = {
 export default function RacesPage() {
   const [userRaces, setUserRaces] = useState<UserRace[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = getSupabaseBrowser()
 
   useEffect(() => {
     const load = async () => {
+      const supabase = getSupabaseBrowser()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       const { data } = await supabase
@@ -43,12 +43,12 @@ export default function RacesPage() {
 
   const updateStatus = async (id: string, status: RaceStatus) => {
     setUserRaces(prev => prev.map(ur => ur.id === id ? { ...ur, status } : ur))
-    await supabase.from('user_races').update({ status }).eq('id', id)
+    await getSupabaseBrowser().from('user_races').update({ status }).eq('id', id)
   }
 
   const remove = async (id: string) => {
     setUserRaces(prev => prev.filter(ur => ur.id !== id))
-    await supabase.from('user_races').delete().eq('id', id)
+    await getSupabaseBrowser().from('user_races').delete().eq('id', id)
   }
 
   const groups: Record<RaceStatus, UserRace[]> = {

@@ -15,12 +15,12 @@ export default function CalendarPage() {
   const [userRaces, setUserRaces] = useState<UserRace[]>([])
   const [selectedRace, setSelectedRace] = useState<UserRace | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = getSupabaseBrowser()
   const year = new Date().getFullYear()
   const currentMonth = new Date().getMonth()
 
   useEffect(() => {
     const load = async () => {
+      const supabase = getSupabaseBrowser()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       const { data } = await supabase
