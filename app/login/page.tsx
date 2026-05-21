@@ -6,6 +6,10 @@ import { useState } from 'react'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const envMissing = !supabaseUrl || !supabaseKey
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -14,6 +18,31 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const router = useRouter()
+
+  if (envMissing) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ background: '#1a0f0f', border: '1px solid #e74c3c', borderRadius: 12, padding: 24, maxWidth: 480, width: '100%' }}>
+          <h2 style={{ color: '#e74c3c', margin: '0 0 12px', fontSize: '1rem' }}>⚠️ Variables Supabase manquantes</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, margin: '0 0 16px' }}>
+            Les variables d'environnement ne sont pas présentes dans le build.
+            Vérifie dans <strong style={{ color: 'var(--text-primary)' }}>Vercel → Settings → Environment Variables</strong> que ces deux variables existent bien :
+          </p>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 8, padding: 12, fontFamily: 'monospace', fontSize: '0.8rem' }}>
+            <div style={{ color: supabaseUrl ? 'var(--accent-green)' : '#e74c3c', marginBottom: 4 }}>
+              {supabaseUrl ? '✓' : '✗'} NEXT_PUBLIC_SUPABASE_URL
+            </div>
+            <div style={{ color: supabaseKey ? 'var(--accent-green)' : '#e74c3c' }}>
+              {supabaseKey ? '✓' : '✗'} NEXT_PUBLIC_SUPABASE_ANON_KEY
+            </div>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: 12 }}>
+            Après avoir ajouté les variables, redéploie depuis Vercel → Deployments → Redeploy.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
