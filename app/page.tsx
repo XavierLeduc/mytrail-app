@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import NextRaceHero from '@/components/dashboard/NextRaceHero'
 import StatsRow from '@/components/dashboard/StatsRow'
 import SeasonTimeline from '@/components/dashboard/SeasonTimeline'
