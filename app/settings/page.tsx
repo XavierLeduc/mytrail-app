@@ -13,6 +13,10 @@ export default function SettingsPage() {
   const [callbackError, setCallbackError] = useState('')
   const [seeding, setSeeding] = useState(false)
   const [seedResult, setSeedResult] = useState<string | null>(null)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileSaved, setProfileSaved] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -29,6 +33,16 @@ export default function SettingsPage() {
       setLoading(false)
     }
     load()
+
+    // Load runner profile from user metadata
+    const supabase2 = getSupabaseBrowser()
+    supabase2.auth.getUser().then((res: { data: { user: { user_metadata: Record<string, string> } | null } }) => {
+      const meta = res.data?.user?.user_metadata
+      if (meta) {
+        setFirstName(meta.runner_first_name ?? '')
+        setLastName(meta.runner_last_name ?? '')
+      }
+    })
 
     // Check URL params after OAuth callback
     const params = new URLSearchParams(window.location.search)
@@ -50,6 +64,17 @@ export default function SettingsPage() {
   const syncStrava = async () => {
     await fetch('/api/strava/sync', { method: 'POST' })
     alert('Sync lancée — recharge la page Activités dans quelques secondes.')
+  }
+
+  const saveProfile = async () => {
+    setSavingProfile(true)
+    const supabase = getSupabaseBrowser()
+    await supabase.auth.updateUser({
+      data: { runner_first_name: firstName.trim().toUpperCase(), runner_last_name: lastName.trim().toUpperCase() }
+    })
+    setSavingProfile(false)
+    setProfileSaved(true)
+    setTimeout(() => setProfileSaved(false), 2500)
   }
 
   const seedCatalogue = async () => {
@@ -136,6 +161,36 @@ export default function SettingsPage() {
                 <ExternalLink size={12} /> Connecter
               </a>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Profil coureur */}
+      <section style={{ marginBottom: 32 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
+          Profil coureur
+        </p>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginBottom: 12 }}>
+            Ton nom tel qu'il apparaît sur LiveTrail et ITRA — utilisé pour trouver tes résultats automatiquement.
+          </p>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              value={firstName} onChange={e => setFirstName(e.target.value)}
+              placeholder="Prénom (ex: XAVIER)"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '7px 12px', color: 'var(--text-primary)', fontSize: '0.8rem', width: 160 }}
+            />
+            <input
+              value={lastName} onChange={e => setLastName(e.target.value)}
+              placeholder="Nom (ex: LEDUC)"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '7px 12px', color: 'var(--text-primary)', fontSize: '0.8rem', width: 160 }}
+            />
+            <button
+              onClick={saveProfile} disabled={savingProfile || (!firstName && !lastName)}
+              style={{ background: profileSaved ? 'var(--accent-green)' : 'var(--bg-surface)', border: `1px solid ${profileSaved ? 'var(--accent-green)' : 'var(--border)'}`, borderRadius: 6, padding: '7px 14px', color: profileSaved ? 'var(--bg-primary)' : 'var(--text-muted)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: profileSaved ? 600 : 400 }}
+            >
+              {profileSaved ? '✓ Sauvegardé' : savingProfile ? '…' : 'Sauvegarder'}
+            </button>
           </div>
         </div>
       </section>

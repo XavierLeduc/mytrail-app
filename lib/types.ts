@@ -19,6 +19,14 @@ export interface Race {
   created_at: string
 }
 
+export interface RaceResult {
+  ft?: number  // finish time in seconds
+  or?: number  // overall rank
+  tf?: number  // total finishers
+  cr?: number  // category rank
+  ct?: number  // category total
+}
+
 export interface UserRace {
   id: string
   user_id: string

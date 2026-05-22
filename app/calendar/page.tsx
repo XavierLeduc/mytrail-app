@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useMemo } from 'react'
 import { UserRace } from '@/lib/types'
-import { formatDate, daysUntil, itraColor, countryFlag } from '@/lib/utils'
+import { formatDate, daysUntil, itraColor, countryFlag, parseNotes, encodeNotes } from '@/lib/utils'
 import { ExternalLink, AlertTriangle } from 'lucide-react'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import Link from 'next/link'
@@ -15,7 +15,9 @@ type Priority = 'A' | 'B' | 'C' | null
 type Phase = 'base' | 'build' | 'peak' | 'taper' | 'race' | 'recovery'
 
 function getPriority(notes: string | null): Priority {
-  if (notes === 'A' || notes === 'B' || notes === 'C') return notes
+  if (!notes) return null
+  const p = notes.charAt(0)
+  if (p === 'A' || p === 'B' || p === 'C') return p as Priority
   return null
 }
 
@@ -95,9 +97,12 @@ export default function CalendarPage() {
 
   const updatePriority = async (id: string, next: Priority) => {
     const supabase = getSupabaseBrowser()
-    await supabase.from('user_races').update({ notes: next }).eq('id', id)
-    setUserRaces(prev => prev.map(ur => ur.id === id ? { ...ur, notes: next } : ur))
-    setSelectedRace(prev => prev?.id === id ? { ...prev, notes: next } : prev)
+    const cur = userRaces.find(ur => ur.id === id)
+    const { result } = parseNotes(cur?.notes ?? null)
+    const newNotes = encodeNotes(next, result)
+    await supabase.from('user_races').update({ notes: newNotes }).eq('id', id)
+    setUserRaces(prev => prev.map(ur => ur.id === id ? { ...ur, notes: newNotes } : ur))
+    setSelectedRace(prev => prev?.id === id ? { ...prev, notes: newNotes } : prev)
   }
 
   const cyclePriority = (id: string, current: Priority) => {
