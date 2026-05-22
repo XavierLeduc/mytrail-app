@@ -5,10 +5,10 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import { UserRace, RaceStatus } from '@/lib/types'
 import { formatDistance, formatElevation, formatDate, countryFlag, daysUntil, itraColor } from '@/lib/utils'
-import { MapPin, ExternalLink, Trash2, Plus } from 'lucide-react'
+import { MapPin, ExternalLink, Trash2, Plus, Pencil } from 'lucide-react'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import Link from 'next/link'
-import AddRaceModal from '@/components/races/AddRaceModal'
+import RaceFormModal from '@/components/races/RaceFormModal'
 
 const STATUS_LABEL: Record<RaceStatus, string> = {
   interested: 'Intéressé',
@@ -26,6 +26,7 @@ export default function RacesPage() {
   const [userRaces, setUserRaces] = useState<UserRace[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [editingRace, setEditingRace] = useState<UserRace | null>(null)
   const [addSuccess, setAddSuccess] = useState('')
 
   useEffect(() => {
@@ -73,13 +74,28 @@ export default function RacesPage() {
   return (
     <div style={{ padding: '28px 32px', maxWidth: 800, margin: '0 auto' }}>
       {showAdd && (
-        <AddRaceModal
+        <RaceFormModal
           onClose={() => setShowAdd(false)}
           onAdded={(name) => {
             setShowAdd(false)
             setAddSuccess(`"${name}" ajoutée à ta saison !`)
             setTimeout(() => setAddSuccess(''), 4000)
             reload()
+          }}
+        />
+      )}
+
+      {editingRace && (
+        <RaceFormModal
+          editRace={editingRace.race}
+          onClose={() => setEditingRace(null)}
+          onUpdated={(updatedRace) => {
+            setUserRaces(prev => prev.map(ur =>
+              ur.id === editingRace.id ? { ...ur, race: updatedRace } : ur
+            ))
+            setEditingRace(null)
+            setAddSuccess(`"${updatedRace.name}" modifiée !`)
+            setTimeout(() => setAddSuccess(''), 4000)
           }}
         />
       )}
@@ -148,6 +164,9 @@ export default function RacesPage() {
                             <ExternalLink size={14} />
                           </a>
                         )}
+                        <button onClick={() => setEditingRace(ur)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 0 }}>
+                          <Pencil size={14} />
+                        </button>
                         <button onClick={() => remove(ur.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 0 }}>
                           <Trash2 size={14} />
                         </button>
