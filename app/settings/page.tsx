@@ -11,6 +11,8 @@ export default function SettingsPage() {
   const [garminConnected, setGarminConnected] = useState(false)
   const [loading, setLoading] = useState(true)
   const [callbackError, setCallbackError] = useState('')
+  const [seeding, setSeeding] = useState(false)
+  const [seedResult, setSeedResult] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -48,6 +50,19 @@ export default function SettingsPage() {
   const syncStrava = async () => {
     await fetch('/api/strava/sync', { method: 'POST' })
     alert('Sync lancée — recharge la page Activités dans quelques secondes.')
+  }
+
+  const seedCatalogue = async () => {
+    setSeeding(true)
+    setSeedResult(null)
+    try {
+      const res = await fetch('/api/races/seed', { method: 'POST' })
+      const data = await res.json()
+      setSeedResult(`✓ ${data.inserted} courses importées en base${data.errors > 0 ? ` (${data.errors} erreurs)` : ''}`)
+    } catch {
+      setSeedResult('Erreur lors de l\'import')
+    }
+    setSeeding(false)
   }
 
   return (
@@ -122,6 +137,30 @@ export default function SettingsPage() {
               </a>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* Catalogue de courses */}
+      <section style={{ marginBottom: 32 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
+          Catalogue de courses
+        </p>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 40, height: 40, background: 'var(--accent-green)', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg-primary)', fontWeight: 700, fontSize: '1rem', flexShrink: 0 }}>⛰</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>Importer le catalogue</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: 2 }}>
+              {seedResult ?? '110 courses européennes prêtes à importer en base'}
+            </div>
+          </div>
+          <button
+            onClick={seedCatalogue}
+            disabled={seeding}
+            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 12px', color: 'var(--accent-green)', fontSize: '0.75rem', cursor: seeding ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: seeding ? 0.6 : 1 }}
+          >
+            <RefreshCw size={11} style={{ animation: seeding ? 'spin 1s linear infinite' : 'none' }} />
+            {seeding ? 'Import…' : 'Importer'}
+          </button>
         </div>
       </section>
 

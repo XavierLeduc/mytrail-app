@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { seedRaces } from '@/data/races'
 import { Race } from '@/lib/types'
 import ExplorerFilters, { Filters } from '@/components/explorer/ExplorerFilters'
@@ -11,8 +11,6 @@ import lazyLoad from 'next/dynamic'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 
 const RaceMap = lazyLoad(() => import('@/components/explorer/RaceMap'), { ssr: false })
-
-const countries = [...new Set(seedRaces.map(r => r.country))].sort()
 
 const defaultFilters: Filters = {
   search: '',
@@ -25,20 +23,39 @@ const defaultFilters: Filters = {
 }
 
 export default function ExplorerPage() {
+  const [races, setRaces] = useState<Race[]>(seedRaces)
+  const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<Filters>(defaultFilters)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState<string | null>(null)
 
+  useEffect(() => {
+    const supabase = getSupabaseBrowser()
+    supabase
+      .from('races')
+      .select('*')
+      .order('date', { ascending: true })
+      .limit(2000)
+      .then(({ data, error }: { data: Race[] | null; error: unknown }) => {
+        if (!error && data && data.length > 0) {
+          setRaces(data as Race[])
+        }
+        setLoading(false)
+      })
+  }, [])
+
+  const countries = useMemo(() => [...new Set(races.map(r => r.country))].sort(), [races])
+
   const filtered = useMemo(() => {
-    return seedRaces.filter(race => {
+    return races.filter(race => {
       if (filters.search && !race.name.toLowerCase().includes(filters.search.toLowerCase()) && !race.location.toLowerCase().includes(filters.search.toLowerCase())) return false
       if (filters.country !== 'Tous' && race.country !== filters.country) return false
       if (race.distance_km < filters.minDist || race.distance_km > filters.maxDist) return false
       if (filters.itraMin > 0 && (!race.itra_points || race.itra_points < filters.itraMin)) return false
       return true
     })
-  }, [filters])
+  }, [filters, races])
 
   const handleSelect = (race: Race) => setSelectedId(race.id === selectedId ? null : race.id)
 
@@ -94,7 +111,7 @@ export default function ExplorerPage() {
           Explorer
         </h1>
         <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-          {filtered.length} courses en Europe
+          {loading ? 'Chargement…' : `${filtered.length} courses`}
         </span>
       </div>
 
