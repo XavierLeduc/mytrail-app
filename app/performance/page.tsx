@@ -184,9 +184,10 @@ export default function PerformancePage() {
                     <YAxis yAxisId="elev" orientation="right" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} unit=" m" />
                     <Tooltip
                       contentStyle={customTooltipStyle}
-                      formatter={(value: number, name: string) =>
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={((value: number, name: string) =>
                         name === 'km' ? [`${value} km`, 'Distance'] : [`${value.toLocaleString('fr-FR')} m`, 'D+']
-                      }
+                      ) as any}
                     />
                     <Bar yAxisId="km" dataKey="km" fill="var(--accent-green)" radius={[3, 3, 0, 0]} maxBarSize={32} />
                     <Bar yAxisId="elev" dataKey="elev" fill="var(--accent-gold)" radius={[3, 3, 0, 0]} maxBarSize={32} opacity={0.75} />
@@ -218,7 +219,8 @@ export default function PerformancePage() {
                     <YAxis domain={['auto', 'auto']} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} unit=" bpm" />
                     <Tooltip
                       contentStyle={customTooltipStyle}
-                      formatter={(value: number) => [`${value} bpm`, 'FC moyenne']}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={((value: number) => [`${value} bpm`, 'FC moyenne']) as any}
                     />
                     <Line
                       type="monotone"
