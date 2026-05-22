@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { X, Plus } from 'lucide-react'
-import { getSupabaseBrowser } from '@/lib/supabase-browser'
 
 interface Props {
   onClose: () => void
@@ -33,51 +32,36 @@ export default function AddRaceModal({ onClose, onAdded }: Props) {
     setLoading(true)
     setError('')
 
-    const supabase = getSupabaseBrowser()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setError('Non connecté'); setLoading(false); return }
-
     const slug = `${form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${form.date}`
 
-    // Insert race into global races table
-    const { data: race, error: raceErr } = await supabase
-      .from('races')
-      .upsert({
-        name: form.name,
-        slug,
-        distance_km: parseFloat(form.distance_km),
-        elevation_m: parseInt(form.elevation_m),
-        date: form.date,
-        location: form.location,
-        country: form.country,
-        region: form.region || form.country,
-        itra_points: form.itra_points ? parseInt(form.itra_points) : null,
-        registration_url: form.registration_url || null,
-        latitude: 0,
-        longitude: 0,
-        source: 'manual',
-        description: null,
-      }, { onConflict: 'slug', ignoreDuplicates: false })
-      .select('id')
-      .single()
-
-    if (raceErr || !race) {
-      setError(raceErr?.message ?? 'Erreur lors de la création de la course')
-      setLoading(false)
-      return
-    }
-
-    // Add to user's races
-    const { error: urErr } = await supabase
-      .from('user_races')
-      .upsert({
-        user_id: user.id,
-        race_id: race.id,
+    // Use server API route — bypasses RLS for global races table
+    const res = await fetch('/api/races/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        race: {
+          name: form.name,
+          slug,
+          distance_km: parseFloat(form.distance_km),
+          elevation_m: parseInt(form.elevation_m),
+          date: form.date,
+          location: form.location,
+          country: form.country,
+          region: form.region || form.country,
+          itra_points: form.itra_points ? parseInt(form.itra_points) : null,
+          registration_url: form.registration_url || null,
+          latitude: 0,
+          longitude: 0,
+          source: 'manual',
+          description: null,
+        },
         status: 'registered',
-      }, { onConflict: 'user_id,race_id', ignoreDuplicates: true })
+      }),
+    })
 
-    if (urErr) {
-      setError(urErr.message)
+    const data = await res.json()
+    if (!res.ok) {
+      setError(data.error ?? 'Erreur lors de la création')
       setLoading(false)
       return
     }
