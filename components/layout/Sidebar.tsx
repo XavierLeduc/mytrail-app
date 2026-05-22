@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Calendar, Map, Flag, Zap, Settings } from 'lucide-react'
+import { Home, Calendar, Map, Flag, Zap, Settings, BarChart2 } from 'lucide-react'
 
 const NAV = [
   { href: '/', icon: Home, label: 'Dashboard' },
@@ -10,6 +10,7 @@ const NAV = [
   { href: '/explorer', icon: Map, label: 'Explorer' },
   { href: '/races', icon: Flag, label: 'Mes courses' },
   { href: '/activities', icon: Zap, label: 'Activités' },
+  { href: '/performance', icon: BarChart2, label: 'Performance' },
 ]
 
 export default function Sidebar() {

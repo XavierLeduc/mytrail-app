@@ -39,6 +39,7 @@ export interface Activity {
   elevation_m: number
   duration_s: number
   started_at: string
+  avg_hr?: number
 }
 
 export interface Integration {
