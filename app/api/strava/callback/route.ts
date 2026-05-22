@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { exchangeStravaCode } from '@/lib/strava'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServer } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code')
@@ -11,14 +12,20 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const tokens = await exchangeStravaCode(code)
-
-    // Get current user
+    // Read session from cookies — keeps user logged in
+    const supabase = await createSupabaseServer()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.redirect(new URL('/login', req.url))
 
-    // Upsert integration
-    await supabase.from('integrations').upsert({
+    const tokens = await exchangeStravaCode(code)
+
+    // Use service role to bypass RLS on integrations table
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    await admin.from('integrations').upsert({
       user_id: user.id,
       provider: 'strava',
       access_token: tokens.access_token,
@@ -27,7 +34,8 @@ export async function GET(req: NextRequest) {
     }, { onConflict: 'user_id,provider' })
 
     return NextResponse.redirect(new URL('/settings?success=strava', req.url))
-  } catch {
+  } catch (err) {
+    console.error('Strava callback error:', err)
     return NextResponse.redirect(new URL('/settings?error=strava_failed', req.url))
   }
 }
