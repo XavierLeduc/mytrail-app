@@ -10,6 +10,7 @@ export default function SettingsPage() {
   const [stravaConnected, setStravaConnected] = useState(false)
   const [garminConnected, setGarminConnected] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [callbackError, setCallbackError] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -27,10 +28,12 @@ export default function SettingsPage() {
     }
     load()
 
-    // Check URL params for success/error after OAuth callback
+    // Check URL params after OAuth callback
     const params = new URLSearchParams(window.location.search)
     if (params.get('success') === 'strava') setStravaConnected(true)
     if (params.get('success') === 'garmin') setGarminConnected(true)
+    const err = params.get('error')
+    if (err) setCallbackError(decodeURIComponent(err))
   }, [])
 
   const disconnect = async (provider: 'strava' | 'garmin') => {
@@ -52,6 +55,12 @@ export default function SettingsPage() {
       <h1 style={{ color: 'var(--text-primary)', fontSize: '1.4rem', fontWeight: 700, marginBottom: 32 }}>
         Paramètres
       </h1>
+
+      {callbackError && (
+        <div style={{ background: '#1a0f0f', border: '1px solid #e74c3c', borderRadius: 8, padding: '12px 16px', marginBottom: 20, color: '#e74c3c', fontSize: '0.82rem' }}>
+          ⚠️ Erreur lors de la connexion : <code style={{ fontSize: '0.78rem' }}>{callbackError}</code>
+        </div>
+      )}
 
       {/* Connexions */}
       <section style={{ marginBottom: 32 }}>

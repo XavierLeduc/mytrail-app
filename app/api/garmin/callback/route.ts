@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { exchangeGarminCode } from '@/lib/garmin'
 import { createSupabaseServer } from '@/lib/supabase-server'
-import { createClient } from '@supabase/supabase-js'
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code')
@@ -19,18 +18,18 @@ export async function GET(req: NextRequest) {
     const tokens = await exchangeGarminCode(code)
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString()
 
-    const admin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    await admin.from('integrations').upsert({
+    const { error: upsertError } = await supabase.from('integrations').upsert({
       user_id: user.id,
       provider: 'garmin',
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       expires_at: expiresAt,
     }, { onConflict: 'user_id,provider' })
+
+    if (upsertError) {
+      console.error('Garmin upsert error:', upsertError)
+      return NextResponse.redirect(new URL(`/settings?error=${encodeURIComponent(upsertError.message)}`, req.url))
+    }
 
     return NextResponse.redirect(new URL('/settings?success=garmin', req.url))
   } catch (err) {
