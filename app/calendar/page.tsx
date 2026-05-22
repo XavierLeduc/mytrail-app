@@ -74,7 +74,8 @@ export default function CalendarPage() {
   const [userRaces, setUserRaces] = useState<UserRace[]>([])
   const [selectedRace, setSelectedRace] = useState<UserRace | null>(null)
   const [loading, setLoading] = useState(true)
-  const year = new Date().getFullYear()
+  const [year, setYear] = useState(new Date().getFullYear())
+  const currentYear = new Date().getFullYear()
   const currentMonth = new Date().getMonth()
 
   useEffect(() => {
@@ -104,27 +105,39 @@ export default function CalendarPage() {
     updatePriority(id, next)
   }
 
-  const phases = useMemo(() => computePhases(userRaces, year), [userRaces, year])
-  const conflicts = useMemo(() => detectConflicts(userRaces), [userRaces])
+  const yearRaces = useMemo(
+    () => userRaces.filter(ur => new Date(ur.race.date).getFullYear() === year),
+    [userRaces, year]
+  )
+
+  const phases = useMemo(() => computePhases(yearRaces, year), [yearRaces, year])
+  const conflicts = useMemo(() => detectConflicts(yearRaces), [yearRaces])
 
   const racesByMonth: Record<number, UserRace[]> = {}
-  userRaces.forEach(ur => {
+  yearRaces.forEach(ur => {
     const month = new Date(ur.race.date).getMonth()
     if (!racesByMonth[month]) racesByMonth[month] = []
     racesByMonth[month].push(ur)
   })
 
-  const hasAnyPriority = userRaces.some(ur => getPriority(ur.notes) !== null)
-  const aRaces = userRaces.filter(ur => getPriority(ur.notes) === 'A').sort((a, b) => new Date(a.race.date).getTime() - new Date(b.race.date).getTime())
+  const hasAnyPriority = yearRaces.some(ur => getPriority(ur.notes) !== null)
+  const aRaces = yearRaces.filter(ur => getPriority(ur.notes) === 'A').sort((a, b) => new Date(a.race.date).getTime() - new Date(b.race.date).getTime())
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 960, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h1 style={{ color: 'var(--text-primary)', fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>
-          Calendrier {year}
-        </h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h1 style={{ color: 'var(--text-primary)', fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>
+            Calendrier
+          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={() => { setYear(y => y - 1); setSelectedRace(null) }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, width: 26, height: 26, color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+            <span style={{ color: year === currentYear ? 'var(--accent-green)' : 'var(--text-primary)', fontSize: '1rem', fontWeight: 700, minWidth: 42, textAlign: 'center' }}>{year}</span>
+            <button onClick={() => { setYear(y => y + 1); setSelectedRace(null) }} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, width: 26, height: 26, color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+          </div>
+        </div>
         <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-          {userRaces.length} course{userRaces.length > 1 ? 's' : ''} planifiée{userRaces.length > 1 ? 's' : ''}
+          {yearRaces.length} course{yearRaces.length > 1 ? 's' : ''} planifiée{yearRaces.length > 1 ? 's' : ''}
         </span>
       </div>
 
@@ -148,7 +161,7 @@ export default function CalendarPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 3, borderRadius: 8, overflow: 'hidden' }}>
                 {phases.map((phase, idx) => {
                   const cfg = phaseConfig[phase]
-                  const isCurrent = idx === currentMonth
+                  const isCurrent = year === currentYear && idx === currentMonth
                   const monthRaces = racesByMonth[idx] || []
                   const hasArace = monthRaces.some(ur => getPriority(ur.notes) === 'A')
                   return (
@@ -208,8 +221,8 @@ export default function CalendarPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
             {MONTH_SHORT.map((monthName, idx) => {
               const races = racesByMonth[idx] || []
-              const isPast = idx < currentMonth
-              const isCurrent = idx === currentMonth
+              const isPast = year === currentYear && idx < currentMonth
+              const isCurrent = year === currentYear && idx === currentMonth
               const monthHasConflict = races.some(ur => conflicts.has(ur.id))
 
               return (
